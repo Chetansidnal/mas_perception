@@ -50,6 +50,8 @@ SceneSegmentationNode::SceneSegmentationNode(): nh_("~"),
     if (!recognize_service.exists())
     {
         ROS_WARN("Object recognition service is not available. Will return 'unknown' for all objects");
+        //prodiag.update("S2-102-001", "Node has Started")
+        prodiag.update("E2-102-002", "Object recognition service Failed")
     }
 
     nh_.param("octree_resolution", octree_resolution_, 0.05);
@@ -82,6 +84,9 @@ void SceneSegmentationNode::pointcloudCallback(const sensor_msgs::PointCloud2::P
         catch (tf::TransformException &ex)
         {
             ROS_WARN("PCL transform error: %s", ex.what());
+            rosinfo_string = ex.what();
+		    rosinfo_string = "PCL transform error:"+ rosinfo_string;
+            prodiag.update("E2-102-003", rosinfo_string);
             ros::Duration(1.0).sleep();
             return;
         }
@@ -90,13 +95,14 @@ void SceneSegmentationNode::pointcloudCallback(const sensor_msgs::PointCloud2::P
         pcl::PCLPointCloud2 pc2;
         pcl_conversions::toPCL(msg_transformed, pc2);
         pcl::fromPCLPointCloud2(pc2, *cloud);
-
+        
         cloud_accumulation_->addCloud(cloud);
 
         frame_id_ = msg_transformed.header.frame_id;
 
         std_msgs::String event_out;
         add_to_octree_ = false;
+        prodiag.update("S2-102-004", "e_add_cloud_stopped");
         event_out.data = "e_add_cloud_stopped";
         pub_event_out_.publish(event_out);
     }
@@ -151,6 +157,7 @@ void SceneSegmentationNode::segment()
             else
             {
                 ROS_WARN("Object recognition service call failed");
+                prodiag.update("E2-102-005", "Object recognition service call failed");
                 object_list.objects[i].name = "unknown";
                 object_list.objects[i].probability = 0.0;
             }
@@ -175,6 +182,7 @@ void SceneSegmentationNode::segment()
             {
                 try
                 {
+                     prodiag.update("S2-102-007", "Transforming Pose");
                     ros::Time common_time;
                     transform_listener_.getLatestCommonTime(frame_id_, target_frame_id, common_time, NULL);
                     pose.header.stamp = common_time;
@@ -186,6 +194,9 @@ void SceneSegmentationNode::segment()
                 catch(tf::LookupException& ex)
                 {
                     ROS_WARN("Failed to transform pose: (%s)", ex.what());
+                    rosinfo_string = ex.what();
+		            rosinfo_string = "Failed to transform pose::"+ rosinfo_string;
+                    prodiag.update("E2-102-006", rosinfo_string);
                     pose.header.stamp = now;
                     object_list.objects[i].pose = pose;
                 }
@@ -248,6 +259,7 @@ geometry_msgs::PoseStamped SceneSegmentationNode::getPose(const BoundingBox &box
     }
     n2 = n3.cross(n1);
     ROS_INFO_STREAM("got norms");
+     prodiag.update("S2-102-008", "got norms");
     Eigen::Matrix3f m;
     m << n1 , n2 , n3;
     Eigen::Quaternion<float> q(m);
@@ -273,40 +285,47 @@ void SceneSegmentationNode::eventCallback(const std_msgs::String::ConstPtr &msg)
     if (msg->data == "e_start")
     {
         sub_cloud_ = nh_.subscribe("input", 1, &SceneSegmentationNode::pointcloudCallback, this);
+        prodiag.update("S2-102-009", "e_started");
         event_out.data = "e_started";
     }
     else if (msg->data == "e_add_cloud_start")
     {
         add_to_octree_ = true;
+         prodiag.update("S2-102-010", "e_add_cloud_started");
         // Not needed so that not to affect the action server
         return;
     }
     else if (msg->data == "e_add_cloud_stop")
     {
         add_to_octree_ = false;
+         prodiag.update("S2-102-011", "e_add_cloud_stopped");
         event_out.data = "e_add_cloud_stopped";
     }
     else if (msg->data == "e_find_plane")
     {
         findPlane();
         cloud_accumulation_->reset();
+         prodiag.update("S2-102-012", "e_find_plane done");
         event_out.data = "e_done";
     }
     else if (msg->data == "e_segment")
     {
         segment();
         cloud_accumulation_->reset();
+         prodiag.update("S2-102-013", "e_segment done");
         event_out.data = "e_done";
     }
     else if (msg->data == "e_reset")
     {
         cloud_accumulation_->reset();
+         prodiag.update("S2-102-014", "e_reset ");
         event_out.data = "e_reset";
     }
     else if (msg->data == "e_stop")
     {
         sub_cloud_.shutdown();
         cloud_accumulation_->reset();
+        prodiag.update("S2-102-015", "e_stopped ");
         event_out.data = "e_stopped";
     }
     else
@@ -338,8 +357,22 @@ void SceneSegmentationNode::config_callback(mcr_scene_segmentation::SceneSegment
 int main(int argc, char** argv)
 {
     ros::init(argc, argv, "scene_segmentation_node");
+    ros::NodeHandle n1;
+    string config_json;
+    n1.param("/config_json", config_json);
     SceneSegmentationNode scene_seg;
-    ros::spin();
+    scene_seg.prodiag.start_publishing("Node has Started",config_json);
+    scene_seg.prodiag.update("S2-102-001", "Node has Started");
+    //ros::spin();
+
+     ros::Rate r(50); // 10 hz
+    while (ros::ok)
+    {
+    prodiag.check_dependent(config_json);
+    ros::spinOnce();
+    r.sleep();
+    }
+
     return 0;
 }
 

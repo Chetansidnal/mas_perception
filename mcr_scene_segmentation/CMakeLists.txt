@@ -11,6 +11,7 @@ find_package(catkin REQUIRED
     roslint
     tf
     visualization_msgs
+    diagnose
 )
 find_package(PCL 1.7 REQUIRED)
 find_package(VTK REQUIRED)

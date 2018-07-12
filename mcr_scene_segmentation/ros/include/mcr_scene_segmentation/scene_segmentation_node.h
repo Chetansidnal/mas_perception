@@ -20,7 +20,7 @@
 #include <dynamic_reconfigure/server.h>
 #include <mcr_scene_segmentation/SceneSegmentationConfig.h>
 #include <string>
-
+#include <diagnose/diaglib.hpp> //diagnose
 using mcr::visualization::BoundingBoxVisualizer;
 using mcr::visualization::ClusteredPointCloudVisualizer;
 using mcr::visualization::LabelVisualizer;
@@ -29,6 +29,7 @@ using mcr::visualization::Color;
 class SceneSegmentationNode
 {
     private:
+        
         ros::NodeHandle nh_;
         ros::Publisher pub_debug_;
         ros::Publisher pub_boxes_;
@@ -68,6 +69,7 @@ class SceneSegmentationNode
         geometry_msgs::PoseStamped getPose(const BoundingBox &box);
 
     public:
+        diaglib prodiag;
         SceneSegmentationNode();
         virtual ~SceneSegmentationNode();
 };

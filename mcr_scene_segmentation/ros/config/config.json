@@ -1,0 +1,11 @@
+{"nodes" :[ 
+    {
+        "name" : "youbot_oodl_driver",
+        "connect" : "tcp://*:5560"
+    }],
+"pub" :[ 
+    {
+        "name" : "scene_segmentation_node",
+        "connect" : "tcp://*:5558"
+    }]
+}
