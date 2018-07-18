@@ -51,7 +51,7 @@ SceneSegmentationNode::SceneSegmentationNode(): nh_("~"),
     {
         ROS_WARN("Object recognition service is not available. Will return 'unknown' for all objects");
         //prodiag.update("S2-102-001", "Node has Started")
-        prodiag.update("E2-102-002", "Object recognition service Failed")
+        prodiag.update("E2-102-002", "Object recognition service Failed");
     }
 
     nh_.param("octree_resolution", octree_resolution_, 0.05);
@@ -84,7 +84,7 @@ void SceneSegmentationNode::pointcloudCallback(const sensor_msgs::PointCloud2::P
         catch (tf::TransformException &ex)
         {
             ROS_WARN("PCL transform error: %s", ex.what());
-            rosinfo_string = ex.what();
+            string rosinfo_string = ex.what();
 		    rosinfo_string = "PCL transform error:"+ rosinfo_string;
             prodiag.update("E2-102-003", rosinfo_string);
             ros::Duration(1.0).sleep();
@@ -194,7 +194,7 @@ void SceneSegmentationNode::segment()
                 catch(tf::LookupException& ex)
                 {
                     ROS_WARN("Failed to transform pose: (%s)", ex.what());
-                    rosinfo_string = ex.what();
+                    string rosinfo_string = ex.what();
 		            rosinfo_string = "Failed to transform pose::"+ rosinfo_string;
                     prodiag.update("E2-102-006", rosinfo_string);
                     pose.header.stamp = now;
@@ -368,7 +368,7 @@ int main(int argc, char** argv)
      ros::Rate r(10); // 10 hz
     while (ros::ok)
     {
-    prodiag.check_dependent(config_json);
+    scene_seg.prodiag.check_dependent(config_json);
     ros::spinOnce();
     r.sleep();
     }
