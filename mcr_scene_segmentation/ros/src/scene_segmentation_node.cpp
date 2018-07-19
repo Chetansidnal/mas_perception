@@ -359,7 +359,8 @@ int main(int argc, char** argv)
     ros::init(argc, argv, "scene_segmentation_node");
     ros::NodeHandle n1;
     string config_json;
-    n1.param("/scene_segmentation/config_json", config_json);
+    n1.getParam("/mcr_perception/scene_segmentation/config_json", config_json);
+	std::cout<<"config_json---------"<<config_json<<endl;
     SceneSegmentationNode scene_seg;
     scene_seg.prodiag.start_publishing("Node has Started",config_json);
     scene_seg.prodiag.update("S2-102-001", "Node has Started");
